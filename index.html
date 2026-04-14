@@ -576,10 +576,26 @@ function calcTax() {
       '<div class="rec-row"><span>최대 세액공제</span><span class="rec-val">' + credit.toFixed(1) + '만 원</span></div>' +
       '<div class="rec-row" style="color:var(--dim);font-size:12px;margin-top:4px;">900만 원 초과 납입 시 세액공제 혜택 없음 (과세이연만 적용)</div>';
   } else {
+    // 현재 상태에서 남은 한도를 어디에 넣을지 추천
+    const recPension = Math.min(600, pension + remain);
+    const recIrp = 900 - recPension;
+    const addPension = recPension - pension;
+    const addIrp = recIrp - irp;
+
+    let advice = '';
+    if (addPension > 0 && addIrp > 0) {
+      advice = '연금저축 +' + addPension + ', IRP +' + addIrp + ' 추천';
+    } else if (addPension > 0) {
+      advice = '연금저축에 ' + addPension + '만 추가 추천';
+    } else if (addIrp > 0) {
+      advice = 'IRP에 ' + addIrp + '만 추가 추천';
+    }
+
     recBox.innerHTML = '<div class="rec-title">' + remain + '만 원 더 넣으면 ' + extraCredit.toFixed(1) + '만 원 추가 절세</div>' +
       '<div class="rec-row"><span>현재 납입</span><span class="rec-val">' + total + '만 / 900만</span></div>' +
       '<div class="rec-row"><span>추가 납입 시 절세액</span><span class="rec-val">+' + extraCredit.toFixed(1) + '만 원</span></div>' +
-      '<div class="rec-row"><span>최적 조합</span><span class="rec-val">연금저축 600 + IRP 300</span></div>';
+      '<div class="rec-row"><span>추천</span><span class="rec-val">' + advice + '</span></div>' +
+      '<div class="rec-row"><span>최종 목표</span><span class="rec-val">연금저축 ' + recPension + ' + IRP ' + recIrp + '</span></div>';
   }
 }
 
