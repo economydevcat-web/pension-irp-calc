@@ -421,6 +421,13 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
     <div class="card">
       <div class="slider-group">
         <div class="slider-label">
+          <span>총급여 (연봉)</span>
+          <div class="slider-value" id="v-lt-salary">5,000만 원</div>
+        </div>
+        <input type="range" id="s-lt-salary" min="2000" max="15000" value="5000" step="100" oninput="calcLongterm()">
+      </div>
+      <div class="slider-group">
+        <div class="slider-label">
           <span>연간 납입액</span>
           <div class="slider-value" id="v-lt-annual">600만 원</div>
         </div>
@@ -522,11 +529,12 @@ function calcTax() {
   let irp = parseInt(document.getElementById('s-irp').value);
 
   // 한도 적용: 연금저축 최대 600, 합산 최대 900
-  pension = Math.min(pension, 600);
+  pension = Math.min(pension, 600, 900 - irp);
   irp = Math.min(irp, 900 - pension);
 
-  // 슬라이더 값 보정
+  // 슬라이더 값 보정 (양방향 제한)
   document.getElementById('s-pension').value = pension;
+  document.getElementById('s-pension').max = Math.min(600, 900 - irp);
   document.getElementById('s-irp').value = irp;
   document.getElementById('s-irp').max = 900 - pension;
 
@@ -591,41 +599,42 @@ function calcTax() {
 }
 
 function calcLongterm() {
+  const ltSalary = parseInt(document.getElementById('s-lt-salary').value);
   const annual = parseInt(document.getElementById('s-lt-annual').value);
   const rate = parseFloat(document.getElementById('s-lt-rate').value);
   const years = parseInt(document.getElementById('s-lt-years').value);
   const monthly = annual / 12;
 
+  document.getElementById('v-lt-salary').textContent = ltSalary.toLocaleString() + '만 원';
   document.getElementById('v-lt-annual').textContent = annual + '만 원';
   document.getElementById('v-lt-rate').textContent = rate + '%';
   document.getElementById('v-lt-years').textContent = years + '년';
 
-  // 일반계좌: 매년 수익에 15.4% 과세
-  const taxRate = 0.154;
-  const normalRate = rate * (1 - taxRate); // 세후 수익률
+  // 연봉에 따른 실제 세액공제율
+  const creditRate = ltSalary <= 5500 ? 0.165 : 0.132;
+  const creditPerYear = Math.min(annual, 900) * creditRate;
 
-  // 연금계좌: 과세이연 (수익률 그대로) + 세액공제 재투자 효과
-  // 세액공제율 평균 14.85% 가정 ((16.5+13.2)/2)
-  const creditRate = 0.1485;
-  const creditPerYear = annual * creditRate; // 세액공제 환급분
+  const r = rate / 100;
 
-  // FV 계산
+  // FV 계산 (월 적립)
   function fvMonthly(m, rateYear, y) {
-    const r = rateYear / 100 / 12;
+    const mr = rateYear / 100 / 12;
     const n = y * 12;
-    if (r === 0) return m * n;
-    return m * ((Math.pow(1 + r, n) - 1) / r);
+    if (mr === 0) return m * n;
+    return m * ((Math.pow(1 + mr, n) - 1) / mr);
   }
 
-  function fvAnnual(a, rateYear, y) {
-    const r = rateYear / 100;
-    if (r === 0) return a * y;
-    return a * ((Math.pow(1 + r, y) - 1) / r);
-  }
-
+  // 일반계좌: 매년 수익에 15.4% 과세
+  const normalRate = rate * (1 - 0.154);
   const normalFV = fvMonthly(monthly, normalRate, years);
-  // 연금계좌 = 납입분 복리 + 세액공제 재투자 복리
-  const pensionFV = fvMonthly(monthly, rate, years) + fvAnnual(creditPerYear, rate, years);
+
+  // 연금계좌: 과세이연 + 세액공제 매년 재투자 (연말에 환급받아 재투자)
+  // 세액공제 환급분을 매년 말에 받아서 남은 기간만큼 복리
+  let creditFV = 0;
+  for (let y = 1; y <= years; y++) {
+    creditFV += creditPerYear * Math.pow(1 + r, years - y);
+  }
+  const pensionFV = fvMonthly(monthly, rate, years) + creditFV;
   const diff = pensionFV - normalFV;
 
   document.getElementById('r-lt-normal').textContent = fmt(normalFV);
@@ -637,7 +646,10 @@ function calcLongterm() {
   for (let y = 0; y <= years; y++) {
     labels.push(y + '년');
     dNormal.push(Math.round(fvMonthly(monthly, normalRate, y)));
-    dPension.push(Math.round(fvMonthly(monthly, rate, y) + fvAnnual(creditPerYear, rate, y)));
+    // 세액공제 누적도 매년 정확히 계산
+    let cf = 0;
+    for (let j = 1; j <= y; j++) { cf += creditPerYear * Math.pow(1 + r, y - j); }
+    dPension.push(Math.round(fvMonthly(monthly, rate, y) + cf));
   }
 
   if (chartLT) chartLT.destroy();
