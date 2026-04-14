@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>연금저축·IRP 세액공제 계산기 | 개발하는고양이</title>
+<meta name="description" content="연봉 입력하면 연금저축·IRP 세액공제액 자동 계산. 연봉별 비교, 장기 수익 시뮬레이션까지.">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700;900&family=Noto+Serif+KR:wght@600;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #111118;
+  --surface: #1a1a24;
+  --surface2: #222230;
+  --border: #2c2c3a;
+  --text: #e8e4de;
+  --sub: #9c978e;
+  --dim: #6a665e;
+  --gold: #c9a55a;
+  --gold-soft: rgba(201,165,90,0.12);
+  --blue: #6b9ec8;
+  --coral: #c87272;
+  --cream: #f0ebe3;
+  --green: #7cb88a;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Noto Sans KR', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.7;
+  background-image: url('background.png');
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 17, 24, 0.88);
+  z-index: 0;
+}
+
+.container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 20px 64px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ─── Header ─── */
+.header { text-align: center; padding: 48px 0 32px; }
+.header .avatar {
+  width: 68px; height: 68px;
+  border-radius: 50%;
+  border: 2px solid var(--gold);
+  margin-bottom: 16px;
+  opacity: 0.95;
+}
+.header h1 {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--cream);
+  letter-spacing: -1px;
+  margin-bottom: 6px;
+}
+.header p { color: var(--sub); font-size: 14px; font-weight: 300; }
+.badge {
+  display: inline-block;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 11px;
+  color: var(--sub);
+  margin-top: 14px;
+  letter-spacing: 0.5px;
+}
+
+/* ─── Blog Buttons ─── */
+.btn-group { display: flex; gap: 10px; justify-content: center; margin-top: 18px; flex-wrap: wrap; }
+.blog-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  text-decoration: none; font-weight: 700; font-size: 13px;
+  padding: 10px 22px; border-radius: 8px;
+  transition: all 0.2s ease;
+}
+.blog-btn:hover { transform: translateY(-1px); }
+.blog-btn.primary { background: var(--gold); color: var(--bg); }
+.blog-btn.primary:hover { box-shadow: 0 4px 16px rgba(201,165,90,0.25); }
+.blog-btn.secondary { background: transparent; color: var(--sub); border: 1px solid var(--border); }
+.blog-btn.secondary:hover { border-color: var(--sub); color: var(--text); }
+.blog-btn svg { width: 15px; height: 15px; }
+.blog-btn.primary svg { fill: var(--bg); }
+.blog-btn.secondary svg { fill: var(--sub); }
+
+/* ─── Tabs ─── */
+.tabs {
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 28px;
+}
+.tab {
+  flex: 1; padding: 13px 8px; text-align: center;
+  cursor: pointer; font-size: 14px; font-weight: 400;
+  color: var(--dim); transition: all 0.2s;
+  border: none; background: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.tab.active { color: var(--gold); font-weight: 700; border-bottom-color: var(--gold); }
+.tab:hover:not(.active) { color: var(--sub); }
+
+/* ─── Cards ─── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 16px;
+}
+
+/* ─── Sliders ─── */
+.slider-group { margin-bottom: 22px; }
+.slider-label {
+  display: flex; justify-content: space-between;
+  align-items: baseline; margin-bottom: 10px;
+}
+.slider-label span { font-size: 13px; color: var(--sub); }
+.slider-value {
+  font-family: 'DM Mono', monospace;
+  font-size: 22px; font-weight: 500; color: var(--cream);
+}
+input[type="range"] {
+  width: 100%; height: 4px;
+  -webkit-appearance: none;
+  background: var(--border);
+  border-radius: 2px; outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--cream);
+  cursor: pointer; border: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  transition: transform 0.15s;
+}
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+
+/* ─── Result Cards ─── */
+.results {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 24px 0;
+}
+.result-card {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 20px 14px;
+  text-align: center;
+  border: 1px solid var(--border);
+  transition: border-color 0.2s;
+}
+.result-card:hover { border-color: var(--sub); }
+.result-card .label { font-size: 12px; color: var(--dim); margin-bottom: 8px; letter-spacing: 0.3px; }
+.result-card .amount {
+  font-family: 'DM Mono', monospace;
+  font-size: 22px; font-weight: 500;
+}
+.result-card .sub-info {
+  font-size: 11px; color: var(--dim); margin-top: 6px;
+}
+.result-card.highlight { border-color: rgba(201,165,90,0.25); }
+.result-card.highlight .amount { color: var(--gold); }
+
+/* ─── Recommend Box ─── */
+.recommend-box {
+  background: var(--gold-soft);
+  border: 1px solid rgba(201,165,90,0.18);
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin: 16px 0;
+}
+.recommend-box .rec-title {
+  font-size: 13px; color: var(--gold); font-weight: 700; margin-bottom: 8px;
+}
+.recommend-box .rec-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 0; font-size: 13px; color: var(--sub);
+}
+.recommend-box .rec-row .rec-val {
+  font-family: 'DM Mono', monospace; font-weight: 500; color: var(--cream);
+}
+
+/* ─── Rate Badge ─── */
+.rate-badge {
+  display: inline-block;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 13px;
+  color: var(--sub);
+  margin: 12px 0;
+}
+.rate-badge strong {
+  font-family: 'DM Mono', monospace;
+  color: var(--gold); font-size: 15px;
+}
+
+/* ─── Salary Comparison ─── */
+.salary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 20px 0;
+}
+.salary-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 16px;
+  text-align: center;
+}
+.salary-card .sal-title {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 18px; font-weight: 600; margin-bottom: 2px;
+}
+.salary-card .sal-rate { font-size: 11px; color: var(--dim); margin-bottom: 10px; }
+.salary-card .sal-amount {
+  font-family: 'DM Mono', monospace;
+  font-size: 22px; font-weight: 500;
+}
+.salary-card.low .sal-title, .salary-card.low .sal-amount { color: var(--green); }
+.salary-card.mid .sal-title, .salary-card.mid .sal-amount { color: var(--gold); }
+.salary-card.high .sal-title, .salary-card.high .sal-amount { color: var(--blue); }
+.salary-card.top .sal-title, .salary-card.top .sal-amount { color: var(--coral); }
+
+/* ─── Chart ─── */
+.chart-wrap { position: relative; height: 280px; margin: 20px 0; }
+
+/* ─── Info Card ─── */
+.info-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin: 16px 0;
+  font-size: 13px;
+  color: var(--sub);
+  line-height: 1.9;
+}
+.info-card strong { color: var(--cream); font-family: 'Noto Serif KR', serif; }
+.info-card .mono { font-family: 'DM Mono', monospace; color: var(--gold); }
+
+/* ─── Footer ─── */
+.footer {
+  text-align: center; padding: 32px 0 10px;
+  border-top: 1px solid var(--border);
+  margin-top: 36px;
+}
+.footer p { font-size: 12px; color: var(--dim); margin-top: 8px; line-height: 1.8; }
+
+/* ─── Section ─── */
+.section { display: none; }
+.section.active { display: block; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.section.active { animation: fadeUp 0.35s ease; }
+
+/* ─── Responsive ─── */
+@media (max-width: 480px) {
+  .header h1 { font-size: 22px; }
+  .results { grid-template-columns: 1fr; }
+  .salary-grid { grid-template-columns: 1fr; }
+  .btn-group { flex-direction: column; align-items: center; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <img src="profile.jpg" alt="개발하는고양이" class="avatar">
+    <h1>연금저축·IRP<br>세액공제 계산기</h1>
+    <p>연봉 넣으면 절세 금액이 바로 나옵니다</p>
+    <div class="badge">개발하는고양이</div>
+    <div class="btn-group">
+      <a href="https://blog.naver.com/economydev" target="_blank" class="blog-btn primary">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        이 글 원문 보기
+      </a>
+      <a href="https://blog.naver.com/economydev" target="_blank" class="blog-btn secondary">
+        <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        블로그 홈
+      </a>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('calc', event)">세액공제 계산</button>
+    <button class="tab" onclick="showTab('compare', event)">연봉별 비교</button>
+    <button class="tab" onclick="showTab('longterm', event)">장기 수익</button>
+  </div>
+
+  <!-- TAB 1: 세액공제 계산기 -->
+  <div id="tab-calc" class="section active">
+    <div class="card">
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>총급여 (연봉)</span>
+          <div class="slider-value" id="v-salary">5,000만 원</div>
+        </div>
+        <input type="range" id="s-salary" min="2000" max="15000" value="5000" step="100" oninput="calcTax()">
+      </div>
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>연금저축 납입액 (연간)</span>
+          <div class="slider-value" id="v-pension">400만 원</div>
+        </div>
+        <input type="range" id="s-pension" min="0" max="600" value="400" step="10" oninput="calcTax()">
+      </div>
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>IRP 추가 납입액 (연간)</span>
+          <div class="slider-value" id="v-irp">200만 원</div>
+        </div>
+        <input type="range" id="s-irp" min="0" max="900" value="200" step="10" oninput="calcTax()">
+      </div>
+    </div>
+
+    <div class="rate-badge" id="rate-badge">
+      적용 공제율: <strong>16.5%</strong>
+    </div>
+
+    <div class="results">
+      <div class="result-card">
+        <div class="label">총 납입액</div>
+        <div class="amount" id="r-total-input">600만</div>
+        <div class="sub-info" id="r-total-detail">연금저축 400 + IRP 200</div>
+      </div>
+      <div class="result-card highlight">
+        <div class="label">예상 세액공제</div>
+        <div class="amount" id="r-tax-credit">99만</div>
+        <div class="sub-info" id="r-tax-detail">연말정산 환급</div>
+      </div>
+      <div class="result-card">
+        <div class="label">실질 수익률</div>
+        <div class="amount" style="color:var(--green);" id="r-eff-rate">16.5%</div>
+        <div class="sub-info">넣자마자 수익</div>
+      </div>
+    </div>
+
+    <div class="recommend-box" id="recommend-box">
+      <div class="rec-title">추가 납입 추천</div>
+      <div class="rec-row">
+        <span>한도까지 남은 금액</span>
+        <span class="rec-val" id="rec-remain">300만 원</span>
+      </div>
+      <div class="rec-row">
+        <span>추가 납입 시 절세액</span>
+        <span class="rec-val" id="rec-extra-save">49.5만 원</span>
+      </div>
+      <div class="rec-row">
+        <span>최적 조합</span>
+        <span class="rec-val" id="rec-optimal">연금저축 600 + IRP 300</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: 연봉별 비교 -->
+  <div id="tab-compare" class="section">
+    <div class="info-card">
+      <strong>연봉 구간에 따른 최대 절세액</strong><br>
+      연금저축 600만 + IRP 300만 = <span class="mono">총 900만 원</span> 납입 기준
+    </div>
+
+    <div class="salary-grid">
+      <div class="salary-card low">
+        <div class="sal-title">3,000만</div>
+        <div class="sal-rate">공제율 16.5%</div>
+        <div class="sal-amount">148.5만</div>
+      </div>
+      <div class="salary-card mid">
+        <div class="sal-title">5,000만</div>
+        <div class="sal-rate">공제율 16.5%</div>
+        <div class="sal-amount">148.5만</div>
+      </div>
+      <div class="salary-card high">
+        <div class="sal-title">7,000만</div>
+        <div class="sal-rate">공제율 13.2%</div>
+        <div class="sal-amount">118.8만</div>
+      </div>
+      <div class="salary-card top">
+        <div class="sal-title">1억</div>
+        <div class="sal-rate">공제율 13.2%</div>
+        <div class="sal-amount">118.8만</div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      총급여 <span class="mono">5,500만 원</span>이 공제율 분기점입니다.<br><br>
+      5,500만 이하 → <span class="mono">16.5%</span> (최대 148.5만 환급)<br>
+      5,500만 초과 → <span class="mono">13.2%</span> (최대 118.8만 환급)<br><br>
+      연봉이 높아도 절세 효과는 확실합니다. 118.8만 원이면 세전 연봉 기준 약 1.2% 수준의 즉시 수익입니다.
+    </div>
+  </div>
+
+  <!-- TAB 3: 장기 수익 시뮬레이션 -->
+  <div id="tab-longterm" class="section">
+    <div class="card">
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>연간 납입액</span>
+          <div class="slider-value" id="v-lt-annual">600만 원</div>
+        </div>
+        <input type="range" id="s-lt-annual" min="100" max="900" value="600" step="50" oninput="calcLongterm()">
+      </div>
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>예상 수익률</span>
+          <div class="slider-value" id="v-lt-rate">7%</div>
+        </div>
+        <input type="range" id="s-lt-rate" min="3" max="12" value="7" step="0.5" oninput="calcLongterm()">
+      </div>
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>투자 기간</span>
+          <div class="slider-value" id="v-lt-years">20년</div>
+        </div>
+        <input type="range" id="s-lt-years" min="5" max="35" value="20" step="1" oninput="calcLongterm()">
+      </div>
+    </div>
+
+    <div class="results">
+      <div class="result-card">
+        <div class="label">일반계좌</div>
+        <div class="amount" style="color:var(--dim);" id="r-lt-normal">0</div>
+        <div class="sub-info">세금 15.4% 매년 차감</div>
+      </div>
+      <div class="result-card highlight">
+        <div class="label">연금계좌</div>
+        <div class="amount" id="r-lt-pension">0</div>
+        <div class="sub-info">과세이연 + 세액공제</div>
+      </div>
+      <div class="result-card">
+        <div class="label">차이</div>
+        <div class="amount" style="color:var(--green);" id="r-lt-diff">0</div>
+        <div class="sub-info">연금계좌가 유리</div>
+      </div>
+    </div>
+
+    <div class="chart-wrap">
+      <canvas id="chart-longterm"></canvas>
+    </div>
+
+    <div class="info-card">
+      <strong>과세이연의 힘</strong><br><br>
+      일반계좌는 이자·배당에 매년 <span class="mono">15.4%</span> 세금이 빠지지만,
+      연금계좌는 수령 시까지 과세가 이연됩니다.<br>
+      게다가 55세 이후 연금으로 수령하면 <span class="mono">3.3~5.5%</span>의 낮은 세율이 적용됩니다.<br><br>
+      세액공제 + 과세이연 + 저율과세. 이 세 가지가 합쳐져 일반계좌 대비 큰 격차를 만듭니다.
+    </div>
+  </div>
+
+  <!-- Footer CTA -->
+  <div class="footer">
+    <img src="profile.jpg" alt="개발하는고양이" class="avatar" style="width:52px;height:52px;margin-bottom:10px;">
+    <p style="font-size:15px;color:var(--cream);margin-bottom:4px;font-weight:700;font-family:'Noto Serif KR',serif;">연금저축·IRP 더 알아보기</p>
+    <p style="font-size:13px;color:var(--sub);margin-bottom:16px;">연봉별 절세 전략, 실전 가이드까지</p>
+    <div class="btn-group">
+      <a href="https://blog.naver.com/economydev" target="_blank" class="blog-btn primary">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        이 글 원문 보기
+      </a>
+      <a href="https://blog.naver.com/economydev" target="_blank" class="blog-btn secondary">
+        <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        블로그 홈
+      </a>
+    </div>
+    <p style="margin-top:20px;">※ 이 계산기는 2026년 세법 기준 참고용이며, 실제 공제액은 개인 상황에 따라 달라집니다.<br>세무 판단은 전문가와 상담하시기 바랍니다.</p>
+  </div>
+</div>
+
+<script>
+let chartLT = null;
+
+const C = {
+  gold: '#c9a55a', blue: '#6b9ec8', coral: '#c87272',
+  dim: '#6a665e', green: '#7cb88a',
+  grid: 'rgba(44,44,58,0.6)', label: '#9c978e'
+};
+
+function fmt(v) {
+  if (v >= 10000) return (v / 10000).toFixed(2) + '억';
+  return Math.round(v).toLocaleString() + '만';
+}
+
+function showTab(id, e) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  if (e) e.target.classList.add('active');
+  else document.querySelector('[onclick*="showTab(\'' + id + '\')"]').classList.add('active');
+  history.replaceState(null, '', '#' + id);
+  if (id === 'longterm') calcLongterm();
+}
+
+function calcTax() {
+  const salary = parseInt(document.getElementById('s-salary').value);
+  let pension = parseInt(document.getElementById('s-pension').value);
+  let irp = parseInt(document.getElementById('s-irp').value);
+
+  // 한도 적용: 연금저축 최대 600, 합산 최대 900
+  pension = Math.min(pension, 600);
+  irp = Math.min(irp, 900 - pension);
+
+  // 슬라이더 값 보정
+  document.getElementById('s-pension').value = pension;
+  document.getElementById('s-irp').value = irp;
+  document.getElementById('s-irp').max = 900 - pension;
+
+  const total = pension + irp;
+  const rate = salary <= 5500 ? 16.5 : 13.2;
+  const credit = total * rate / 100;
+
+  // 실질 수익률 = 세액공제 / 납입액 × 100
+  const effRate = total > 0 ? (credit / total * 100) : 0;
+
+  // 남은 한도
+  const remain = 900 - total;
+  const extraCredit = remain * rate / 100;
+
+  // 최적 조합
+  const optPension = Math.min(600, 900);
+  const optIrp = 900 - optPension;
+
+  // UI 업데이트
+  document.getElementById('v-salary').textContent = salary.toLocaleString() + '만 원';
+  document.getElementById('v-pension').textContent = pension + '만 원';
+  document.getElementById('v-irp').textContent = irp + '만 원';
+
+  document.getElementById('rate-badge').innerHTML =
+    '적용 공제율: <strong>' + rate + '%</strong>' +
+    (salary <= 5500 ? ' (총급여 5,500만 이하)' : ' (총급여 5,500만 초과)');
+
+  document.getElementById('r-total-input').textContent = total + '만';
+  document.getElementById('r-total-detail').textContent = '연금저축 ' + pension + ' + IRP ' + irp;
+  document.getElementById('r-tax-credit').textContent = credit.toFixed(1) + '만';
+  document.getElementById('r-tax-detail').textContent = '연말정산 환급';
+  document.getElementById('r-eff-rate').textContent = effRate.toFixed(1) + '%';
+
+  document.getElementById('rec-remain').textContent = remain + '만 원';
+  document.getElementById('rec-extra-save').textContent = extraCredit.toFixed(1) + '만 원';
+  document.getElementById('rec-optimal').textContent = '연금저축 600 + IRP 300';
+
+  // 한도 꽉 찼으면 추천 박스 변경
+  if (remain === 0) {
+    document.getElementById('recommend-box').querySelector('.rec-title').textContent = '한도를 모두 채웠습니다';
+  } else {
+    document.getElementById('recommend-box').querySelector('.rec-title').textContent =
+      remain + '만 원 더 넣으면 ' + extraCredit.toFixed(1) + '만 원 추가 절세';
+  }
+}
+
+function calcLongterm() {
+  const annual = parseInt(document.getElementById('s-lt-annual').value);
+  const rate = parseFloat(document.getElementById('s-lt-rate').value);
+  const years = parseInt(document.getElementById('s-lt-years').value);
+  const monthly = annual / 12;
+
+  document.getElementById('v-lt-annual').textContent = annual + '만 원';
+  document.getElementById('v-lt-rate').textContent = rate + '%';
+  document.getElementById('v-lt-years').textContent = years + '년';
+
+  // 일반계좌: 매년 수익에 15.4% 과세
+  const taxRate = 0.154;
+  const normalRate = rate * (1 - taxRate); // 세후 수익률
+
+  // 연금계좌: 과세이연 (수익률 그대로) + 세액공제 재투자 효과
+  // 세액공제율 평균 14.85% 가정 ((16.5+13.2)/2)
+  const creditRate = 0.1485;
+  const creditPerYear = annual * creditRate; // 세액공제 환급분
+
+  // FV 계산
+  function fvMonthly(m, rateYear, y) {
+    const r = rateYear / 100 / 12;
+    const n = y * 12;
+    if (r === 0) return m * n;
+    return m * ((Math.pow(1 + r, n) - 1) / r);
+  }
+
+  function fvAnnual(a, rateYear, y) {
+    const r = rateYear / 100;
+    if (r === 0) return a * y;
+    return a * ((Math.pow(1 + r, y) - 1) / r);
+  }
+
+  const normalFV = fvMonthly(monthly, normalRate, years);
+  // 연금계좌 = 납입분 복리 + 세액공제 재투자 복리
+  const pensionFV = fvMonthly(monthly, rate, years) + fvAnnual(creditPerYear, rate, years);
+  const diff = pensionFV - normalFV;
+
+  document.getElementById('r-lt-normal').textContent = fmt(normalFV);
+  document.getElementById('r-lt-pension').textContent = fmt(pensionFV);
+  document.getElementById('r-lt-diff').textContent = '+' + fmt(diff);
+
+  // Chart
+  const labels = [], dNormal = [], dPension = [];
+  for (let y = 0; y <= years; y++) {
+    labels.push(y + '년');
+    dNormal.push(Math.round(fvMonthly(monthly, normalRate, y)));
+    dPension.push(Math.round(fvMonthly(monthly, rate, y) + fvAnnual(creditPerYear, rate, y)));
+  }
+
+  if (chartLT) chartLT.destroy();
+  chartLT = new Chart(document.getElementById('chart-longterm'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '일반계좌', data: dNormal, borderColor: C.dim, backgroundColor: 'rgba(106,102,94,0.06)', fill: true, tension: 0.4, pointRadius: 0, borderWidth: 2 },
+        { label: '연금계좌', data: dPension, borderColor: C.gold, backgroundColor: 'rgba(201,165,90,0.06)', fill: true, tension: 0.4, pointRadius: 0, borderWidth: 2 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: C.label, font: { size: 11, family: "'Noto Sans KR'" }, usePointStyle: true, pointStyle: 'circle', padding: 16 } },
+        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + fmt(ctx.raw) } }
+      },
+      scales: {
+        x: { ticks: { color: C.dim, font: { size: 10 } }, grid: { color: C.grid } },
+        y: { ticks: { color: C.dim, font: { size: 10 }, callback: v => fmt(v) }, grid: { color: C.grid } }
+      }
+    }
+  });
+}
+
+// Init
+const hash = location.hash.replace('#', '');
+if (['calc', 'compare', 'longterm'].includes(hash)) {
+  showTab(hash);
+} else {
+  calcTax();
+}
+</script>
+</body>
+</html>
