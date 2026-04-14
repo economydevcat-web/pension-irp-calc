@@ -9,19 +9,19 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 :root {
-  --bg: #111118;
-  --surface: #1a1a24;
-  --surface2: #222230;
-  --border: #2c2c3a;
-  --text: #e8e4de;
-  --sub: #9c978e;
-  --dim: #6a665e;
-  --gold: #c9a55a;
-  --gold-soft: rgba(201,165,90,0.12);
-  --blue: #6b9ec8;
-  --coral: #c87272;
-  --cream: #f0ebe3;
-  --green: #7cb88a;
+  --bg: #f6f4f0;
+  --surface: #ffffff;
+  --surface2: #f0ede8;
+  --border: #e2ded6;
+  --text: #2c2a26;
+  --sub: #7a756c;
+  --dim: #a8a29a;
+  --gold: #b8892e;
+  --gold-soft: rgba(184,137,46,0.08);
+  --blue: #4a7fa5;
+  --coral: #c0605a;
+  --cream: #1f1d1a;
+  --green: #4d8f5a;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 
@@ -41,7 +41,7 @@ body::before {
   content: '';
   position: fixed;
   inset: 0;
-  background: rgba(17, 17, 24, 0.88);
+  background: rgba(246, 244, 240, 0.92);
   z-index: 0;
 }
 
@@ -91,12 +91,12 @@ body::before {
   transition: all 0.2s ease;
 }
 .blog-btn:hover { transform: translateY(-1px); }
-.blog-btn.primary { background: var(--gold); color: var(--bg); }
-.blog-btn.primary:hover { box-shadow: 0 4px 16px rgba(201,165,90,0.25); }
+.blog-btn.primary { background: var(--gold); color: #fff; }
+.blog-btn.primary:hover { box-shadow: 0 4px 16px rgba(184,137,46,0.3); }
 .blog-btn.secondary { background: transparent; color: var(--sub); border: 1px solid var(--border); }
 .blog-btn.secondary:hover { border-color: var(--sub); color: var(--text); }
 .blog-btn svg { width: 15px; height: 15px; }
-.blog-btn.primary svg { fill: var(--bg); }
+.blog-btn.primary svg { fill: #fff; }
 .blog-btn.secondary svg { fill: var(--sub); }
 
 /* ─── Tabs ─── */
@@ -146,9 +146,9 @@ input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 20px; height: 20px;
   border-radius: 50%;
-  background: var(--cream);
+  background: var(--gold);
   cursor: pointer; border: none;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   transition: transform 0.15s;
 }
 input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
@@ -496,9 +496,9 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
 let chartLT = null;
 
 const C = {
-  gold: '#c9a55a', blue: '#6b9ec8', coral: '#c87272',
-  dim: '#6a665e', green: '#7cb88a',
-  grid: 'rgba(44,44,58,0.6)', label: '#9c978e'
+  gold: '#b8892e', blue: '#4a7fa5', coral: '#c0605a',
+  dim: '#a8a29a', green: '#4d8f5a',
+  grid: 'rgba(0,0,0,0.06)', label: '#7a756c'
 };
 
 function fmt(v) {
